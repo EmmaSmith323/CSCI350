@@ -38,6 +38,7 @@ extern Timer *timer;				// the hardware alarm clock
 
 #include "bitmap.h"
 extern BitMap *pageTableBitMap;	//Bitmap to track unused pages
+extern BitMap *swapFileBitMap;
 //extern List *FIFOReplacementQueue;
 
 class ProcessTableEntry{

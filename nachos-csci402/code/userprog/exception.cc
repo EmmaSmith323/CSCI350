@@ -711,12 +711,16 @@ int handleMemoryFull() {
 	//Select page to be eviceted, RAND or FIFO
 	//if (fifo) {
 		//ppn = system->FIFOReplacementQueue->pop();
-		//SWAP FILE?!?!
 		//system->FIFOReplacementQueue->push(ppn);
 	//}
 	//else {
-		//ppn = 
+		//ppn = rand() % NumPhysPages;
 	//}
+	ppn = rand() % NumPhysPages;
+	
+
+	//SWAP FILE STUFF
+
 	cout << "recently evicted and reclaimed ppn = " << ppn << endl;
 	return ppn;
 }
@@ -742,8 +746,8 @@ int handleIPTMiss(int vpn) {
 	//	"position" -- the offset within the file of the first byte to be read/written
 	//executable->ReadAt( &(machine->mainMemory[PageSize * ppn]), PageSize, noffH.code.inFileAddr + (i * PageSize) );
 	//(char *from, int numBytes, int position)???
-	executable->ReadAt(, PageSize, currentThread->space->pageTable[vpn].byteOffset);
-	WriteAt(&(machine->mainMemory[PageSize*ppn]), PageSize, currentThread->space->pageTable[vpn].byteOffset);
+	//currentThread->space->executable->ReadAt(&(machine->mainMemory[noffH.initData.virtualAddr]), PageSize, currentThread->space->pageTable[vpn].byteOffset);
+	//WriteAt(&(machine->mainMemory[PageSize*ppn]), PageSize, currentThread->space->pageTable[vpn].byteOffset);
 
 
 	ipt->entries[ppn].virtualPage = vpn;
