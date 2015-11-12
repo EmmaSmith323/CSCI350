@@ -20,6 +20,7 @@ Timer *timer;				// the hardware timer device,
 					// for invoking context switches
 #ifdef USER_PROGRAM
 BitMap *pageTableBitMap;    //Bitmap to track unused pages
+//List *FIFOReplacementQueue;
 //std::map<AddrSpace*,ableEntry*> processTable;
 
 

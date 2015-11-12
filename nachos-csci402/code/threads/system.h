@@ -17,6 +17,7 @@
 #include "timer.h"
 //#include <map>
 #include <vector>
+#include <queue>
 using namespace std;
 
 // Initialization and cleanup routines
@@ -37,6 +38,7 @@ extern Timer *timer;				// the hardware alarm clock
 
 #include "bitmap.h"
 extern BitMap *pageTableBitMap;	//Bitmap to track unused pages
+//extern List *FIFOReplacementQueue;
 
 class ProcessTableEntry{
 public:

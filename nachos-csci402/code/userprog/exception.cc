@@ -703,25 +703,65 @@ int Rand_Syscall(){
 
 
 
-int handleMemoryFull() {
-	int ppn = -1;
 
+
+int handleMemoryFull() {
+	cout << "handle memory full" << endl;
+	int ppn = -1;
+	//Select page to be eviceted, RAND or FIFO
+	//if (fifo) {
+		//ppn = system->FIFOReplacementQueue->pop();
+		//SWAP FILE?!?!
+		//system->FIFOReplacementQueue->push(ppn);
+	//}
+	//else {
+		//ppn = 
+	//}
+	cout << "recently evicted and reclaimed ppn = " << ppn << endl;
 	return ppn;
 }
 
 
 
 int handleIPTMiss(int vpn) {
+	cout << "handle IPT miss. " << endl;
 	int ppn = -1;
 	//Allocate 1 pg memory and read page from exe into this page
-	
-
-	ppn = system->pageTableBitMap->Find();
+	ppn = pageTableBitMap->Find();
 	if (ppn == -1) {
 		ppn = handleMemoryFull();
 	}
+	
+	cout << "Free page to be written to. ppn = " << ppn << endl;
+	
 	//Read page from executable. Update IPT, and PageTable
 
+	//  "into" --the buffer to contain the data to be read from disk
+	//	"from" -- the buffer containing the data to be written to disk 
+	//	"numBytes" -- the number of bytes to transfer
+	//	"position" -- the offset within the file of the first byte to be read/written
+	//executable->ReadAt( &(machine->mainMemory[PageSize * ppn]), PageSize, noffH.code.inFileAddr + (i * PageSize) );
+	//(char *from, int numBytes, int position)???
+	executable->ReadAt(, PageSize, currentThread->space->pageTable[vpn].byteOffset);
+	WriteAt(&(machine->mainMemory[PageSize*ppn]), PageSize, currentThread->space->pageTable[vpn].byteOffset);
+
+
+	ipt->entries[ppn].virtualPage = vpn;
+	ipt->entries[ppn].physicalPage = ppn;
+	ipt->entries[ppn].valid = TRUE;
+	ipt->entries[ppn].readOnly = FALSE;
+	ipt->entries[ppn].use = FALSE;
+	ipt->entries[ppn].dirty = FALSE;
+
+	currentThread->space->pageTable[ppn].virtualPage = vpn;
+	currentThread->space->pageTable[ppn].physicalPage = ppn;
+	currentThread->space->pageTable[ppn].valid = TRUE;
+	currentThread->space->pageTable[ppn].readOnly = FALSE;
+	currentThread->space->pageTable[ppn].use = FALSE;
+	currentThread->space->pageTable[ppn].dirty = FALSE;
+
+	//Are these right?
+	currentThread->space->pageTable[ppn].byteOffset = 0;
 
 	return ppn;
 }
@@ -729,15 +769,15 @@ int handleIPTMiss(int vpn) {
 
 
 void handlePageFault(int vpn) {
+	cout << "handle page fault. "<< endl;
 	//Searching the IPT
 	int ppn = -1;
-	bool inIPT = false;
 
 	cout << "from ipt:  vnp = " << ipt->entries[vpn].virtualPage << "  ppn = " << ipt->entries[vpn].physicalPage << "    valid " << ipt->entries[vpn].valid << "  dirty  " << ipt->entries[vpn].dirty << endl;
 	for (int i = 0; i < NumPhysPages; i++) {
 		if (ipt->entries[vpn].valid && ipt->entries[vpn].virtualPage == vpn &&  ipt->entries[vpn].owner == currentThread->space) {
 			ppn = i;
-			inIPT = true;
+			cout << "Got it in ipt.  ppn = " << i << endl;
 			break;
 		}
 	}
@@ -745,20 +785,17 @@ void handlePageFault(int vpn) {
 		//Handle IPT miss
 		ppn = handleIPTMiss(vpn);
 	}
-	//Update TLB
-	if (inIPT) {
-		machine->tlb[machine->currentTLB].virtualPage = ipt->entries[ppn].virtualPage;
-		machine->tlb[machine->currentTLB].physicalPage = ipt->entries[ppn].physicalPage;
-		machine->tlb[machine->currentTLB].valid = ipt->entries[ppn].valid;
-		machine->tlb[machine->currentTLB].readOnly = ipt->entries[ppn].readOnly;
-		machine->tlb[machine->currentTLB].use = ipt->entries[ppn].use;
-		machine->tlb[machine->currentTLB].dirty = ipt->entries[ppn].dirty;
 
-		machine->currentTLB = (machine->currentTLB + 1) % TLBSize;
-	}
-	else {
+	//Update TLB, even if IPT miss it will be in IPT by now.
+	machine->tlb[machine->currentTLB].virtualPage = ipt->entries[ppn].virtualPage;
+	machine->tlb[machine->currentTLB].physicalPage = ipt->entries[ppn].physicalPage;
+	machine->tlb[machine->currentTLB].valid = ipt->entries[ppn].valid;
+	machine->tlb[machine->currentTLB].readOnly = ipt->entries[ppn].readOnly;
+	machine->tlb[machine->currentTLB].use = ipt->entries[ppn].use;
+	machine->tlb[machine->currentTLB].dirty = ipt->entries[ppn].dirty;
 
-	}
+	machine->currentTLB = (machine->currentTLB + 1) % TLBSize;
+	
 
 }
 
