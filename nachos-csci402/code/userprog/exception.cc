@@ -852,22 +852,6 @@ int handleIPTMiss(int vpn) {
 	return ppn;
 }
 
-
-
-<<<<<<< HEAD
-void handlePageFault(int vpn) {
-
-	//Searching the IPT
-
-	int ppn = -1;
-
-	bool inIPT = false;
-
-
-
-	cout << "from ipt:  vnp = " << ipt->entries[vpn].virtualPage << "  ppn = " << ipt->entries[vpn].physicalPage << "    valid " << ipt->entries[vpn].valid << "  dirty  " << ipt->entries[vpn].dirty << endl;
-
-=======
 void handlePageFault(int vpn) {
 
 	cout << "handle page fault. "<< endl;
@@ -880,7 +864,7 @@ void handlePageFault(int vpn) {
 
 	cout << "from ipt:  vnp = " << ipt->entries[vpn].virtualPage << "  ppn = " << ipt->entries[vpn].physicalPage << "    valid " << ipt->entries[vpn].valid << "  dirty  " << ipt->entries[vpn].dirty << endl;
 
->>>>>>> 288f68a9414f37060450cf3f829ae3e529eff385
+
 	for (int i = 0; i < NumPhysPages; i++) {
 		if (ipt->entries[vpn].valid && ipt->entries[vpn].virtualPage == vpn &&  ipt->entries[vpn].owner == currentThread->space) {
 			ppn = i;
@@ -892,35 +876,6 @@ void handlePageFault(int vpn) {
 		//Handle IPT miss
 		ppn = handleIPTMiss(vpn);
 	}
-<<<<<<< HEAD
-	//Update TLB
-
-	if (inIPT) {
-
-		machine->tlb[machine->currentTLB].virtualPage = ipt->entries[ppn].virtualPage;
-		machine->tlb[machine->currentTLB].physicalPage = ipt->entries[ppn].physicalPage;
-		machine->tlb[machine->currentTLB].valid = ipt->entries[ppn].valid;
-		machine->tlb[machine->currentTLB].readOnly = ipt->entries[ppn].readOnly;
-		machine->tlb[machine->currentTLB].use = ipt->entries[ppn].use;
-		machine->tlb[machine->currentTLB].dirty = ipt->entries[ppn].dirty;
-
-		machine->currentTLB = (machine->currentTLB + 1) % TLBSize;
-
-	}
-
-	else {
-
-
-
-	}
-
-
-
-}
-
-
-
-=======
 
 	//Update TLB, even if IPT miss it will be in IPT by now.
 
@@ -938,11 +893,6 @@ void handlePageFault(int vpn) {
 
 
 }
-
-
-
->>>>>>> 288f68a9414f37060450cf3f829ae3e529eff385
-
 
 
 void ExceptionHandler(ExceptionType which) {
