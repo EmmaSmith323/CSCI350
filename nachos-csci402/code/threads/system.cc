@@ -20,6 +20,8 @@ Timer *timer;				// the hardware timer device,
 					// for invoking context switches
 #ifdef USER_PROGRAM
 BitMap *pageTableBitMap;    //Bitmap to track unused pages
+BitMap *swapFileBitMap;
+//List *FIFOReplacementQueue;
 //std::map<AddrSpace*,ableEntry*> processTable;
 
 
@@ -248,6 +250,7 @@ Initialize(int argc, char **argv)
 #ifdef USER_PROGRAM
     //Initialize the pageTableBitMap
     pageTableBitMap = new BitMap(NumPhysPages);
+	
     ProcessTable = new ProcessTableClass;
 	ipt = new IPTClass;
 #endif
@@ -286,6 +289,7 @@ Cleanup()
 #ifdef USER_PROGRAM
     delete machine;
 delete pageTableBitMap;
+delete swapFileBitMap;
 #endif
 
 #ifdef FILESYS_NEEDED

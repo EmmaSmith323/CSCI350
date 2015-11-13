@@ -779,33 +779,82 @@ void DestroyMonitor_Syscall(int monitor)
 
 
 
-int handleMemoryFull() {
-	int ppn = -1;
 
+
+int handleMemoryFull() {
+	cout << "handle memory full" << endl;
+	int ppn = -1;
+	//Select page to be eviceted, RAND or FIFO
+	//if (fifo) {
+		//ppn = system->FIFOReplacementQueue->pop();
+		//system->FIFOReplacementQueue->push(ppn);
+	//}
+	//else {
+		//ppn = rand() % NumPhysPages;
+	//}
+	ppn = rand() % NumPhysPages;
+	
+
+	//SWAP FILE STUFF
+
+	cout << "recently evicted and reclaimed ppn = " << ppn << endl;
 	return ppn;
 }
 
 
 
 int handleIPTMiss(int vpn) {
+	cout << "handle IPT miss. " << endl;
 	int ppn = -1;
 	//Allocate 1 pg memory and read page from exe into this page
-	
 
-	ppn = system->pageTableBitMap->Find();
+	ppn = pageTableBitMap->Find();
 	if (ppn == -1) {
 
 		ppn = handleMemoryFull();
 
 	}
+	
+	cout << "Free page to be written to. ppn = " << ppn << endl;
+	
 	//Read page from executable. Update IPT, and PageTable
 
+	//  "into" --the buffer to contain the data to be read from disk
+
+	//	"from" -- the buffer containing the data to be written to disk 
+
+	//	"numBytes" -- the number of bytes to transfer
+
+	//	"position" -- the offset within the file of the first byte to be read/written
+	//executable->ReadAt( &(machine->mainMemory[PageSize * ppn]), PageSize, noffH.code.inFileAddr + (i * PageSize) );
+	//(char *from, int numBytes, int position)???
+	//currentThread->space->executable->ReadAt(&(machine->mainMemory[noffH.initData.virtualAddr]), PageSize, currentThread->space->pageTable[vpn].byteOffset);
+	//WriteAt(&(machine->mainMemory[PageSize*ppn]), PageSize, currentThread->space->pageTable[vpn].byteOffset);
+
+
+	ipt->entries[ppn].virtualPage = vpn;
+	ipt->entries[ppn].physicalPage = ppn;
+	ipt->entries[ppn].valid = TRUE;
+	ipt->entries[ppn].readOnly = FALSE;
+	ipt->entries[ppn].use = FALSE;
+	ipt->entries[ppn].dirty = FALSE;
+
+	currentThread->space->pageTable[ppn].virtualPage = vpn;
+	currentThread->space->pageTable[ppn].physicalPage = ppn;
+	currentThread->space->pageTable[ppn].valid = TRUE;
+	currentThread->space->pageTable[ppn].readOnly = FALSE;
+	currentThread->space->pageTable[ppn].use = FALSE;
+	currentThread->space->pageTable[ppn].dirty = FALSE;
+
+	//Are these right?
+	currentThread->space->pageTable[ppn].byteOffset = 0;
 
 	return ppn;
 }
 
 
 
+<<<<<<< HEAD
 void handlePageFault(int vpn) {
 
 	//Searching the IPT
@@ -818,10 +867,24 @@ void handlePageFault(int vpn) {
 
 	cout << "from ipt:  vnp = " << ipt->entries[vpn].virtualPage << "  ppn = " << ipt->entries[vpn].physicalPage << "    valid " << ipt->entries[vpn].valid << "  dirty  " << ipt->entries[vpn].dirty << endl;
 
+=======
+void handlePageFault(int vpn) {
+
+	cout << "handle page fault. "<< endl;
+
+	//Searching the IPT
+
+	int ppn = -1;
+
+
+
+	cout << "from ipt:  vnp = " << ipt->entries[vpn].virtualPage << "  ppn = " << ipt->entries[vpn].physicalPage << "    valid " << ipt->entries[vpn].valid << "  dirty  " << ipt->entries[vpn].dirty << endl;
+
+>>>>>>> 288f68a9414f37060450cf3f829ae3e529eff385
 	for (int i = 0; i < NumPhysPages; i++) {
 		if (ipt->entries[vpn].valid && ipt->entries[vpn].virtualPage == vpn &&  ipt->entries[vpn].owner == currentThread->space) {
 			ppn = i;
-			inIPT = true;
+			cout << "Got it in ipt.  ppn = " << i << endl;
 			break;
 		}
 	}
@@ -829,6 +892,7 @@ void handlePageFault(int vpn) {
 		//Handle IPT miss
 		ppn = handleIPTMiss(vpn);
 	}
+<<<<<<< HEAD
 	//Update TLB
 
 	if (inIPT) {
@@ -856,6 +920,28 @@ void handlePageFault(int vpn) {
 
 
 
+=======
+
+	//Update TLB, even if IPT miss it will be in IPT by now.
+
+	machine->tlb[machine->currentTLB].virtualPage = ipt->entries[ppn].virtualPage;
+	machine->tlb[machine->currentTLB].physicalPage = ipt->entries[ppn].physicalPage;
+	machine->tlb[machine->currentTLB].valid = ipt->entries[ppn].valid;
+	machine->tlb[machine->currentTLB].readOnly = ipt->entries[ppn].readOnly;
+	machine->tlb[machine->currentTLB].use = ipt->entries[ppn].use;
+	machine->tlb[machine->currentTLB].dirty = ipt->entries[ppn].dirty;
+
+	machine->currentTLB = (machine->currentTLB + 1) % TLBSize;
+
+	
+
+
+
+}
+
+
+
+>>>>>>> 288f68a9414f37060450cf3f829ae3e529eff385
 
 
 
