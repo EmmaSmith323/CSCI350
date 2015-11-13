@@ -41,6 +41,10 @@
 #define SC_Broadcast		20
 #define SC_DestroyCondition 	21
 #define SC_Rand 		22
+#define SC_CreateMonitor    23
+#define SC_SetMonitor     24
+#define SC_GetMonitor     25
+#define SC_DestroyMonitor     26
 
 #define MAXFILENAME 256
 
@@ -179,8 +183,15 @@ void DestroyCondition(int condition);
 /*rand()*/
 int Rand();
 
-
-
+/*************************
+*
+*	Monitor Syscalls
+*
+**************************/
+void CreateMonitor(char* name, int size);
+void SetMonitor(int id, int index, int value);
+int GetMonitor(int id, int index);
+void DestroyMonitor(int id);
 
 
 

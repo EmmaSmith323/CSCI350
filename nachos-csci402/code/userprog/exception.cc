@@ -695,9 +695,85 @@ void DestroyCondition_Syscall(int condition){
 
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////
+//
+//	Rand Syscall
+///////////////////////////////////////////////////////////////////////////////////////////
+
 int Rand_Syscall(){
 	return rand();
 }
+
+//////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////
+//
+//	Monitor Syscalls
+///////////////////////////////////////////////////////////////////////////////////////////
+class MonitorTableEntry{
+public:
+	Semaphore* semaphore;
+	AddrSpace* space;
+	bool isToBeDeleted;
+};
+
+#define MonitorTableSize 200
+BitMap MonitorTableBitMap(MonitorTableSize);
+MonitorTableEntry* MonitorTable[MonitorTableSize];
+
+bool Monitor_Syscall_InputValidation(int monitor)
+{
+	if(monitor < 0 || monitor >= MonitorTableSize){
+		printf("Invalid Monitor Identifier: %i ", monitor);
+		return FALSE;
+	}
+
+	MonitorTableEntry* moniEntry = MonitorTable[monitor];
+	if(moniEntry == NULL){
+		printf("Monitor %i does not exist. ", monitor);
+		return FALSE;
+	}
+	
+	return TRUE;
+}
+
+//Maybe the name is created in the Semaphore constructor and not here?
+void CreateMonitor_Syscall(unsigned int name, int size)
+{
+	DEBUG('C', "In CreateMonitor_Syscall\n");
+}
+
+void SetMonitor_Syscall(int id, int index, int value)
+{
+	DEBUG('C', "In SetMonitor_Syscall\n");
+}
+
+int GetMonitor_Syscall(int id, int index)
+{
+	DEBUG('C', "In GetMonitor_Syscall\n");
+	return 0; ///temporary
+}
+
+void DestroyMonitor_Syscall(int monitor)
+{
+	DEBUG('C', "In DestroyMonitor_Syscall\n");
+	
+	//MonitorTableEntry* me = MonitorTable[monitor];
+
+	//Won't work as semaphore does not have an isBusy() function
+	//if((me->semaphore->isBusy()) ){
+	//	me->isToBeDeleted = TRUE;
+	//	DEBUG('C', "Monitor %i BUSY marking for deletion.\n", monitor);
+	//}else{
+	//	MonitorTable[monitor] = NULL;
+	//	delete me->semaphore;
+	//	me->semaphore = NULL;
+	//	delete me;
+	//	MonitorTableBitMap.Clear(monitor);
+	//	DEBUG('C', "Monitor %i deleted.\n", monitor);
+	//}
+}
+
 
 
 
@@ -718,7 +794,9 @@ int handleIPTMiss(int vpn) {
 
 	ppn = system->pageTableBitMap->Find();
 	if (ppn == -1) {
+
 		ppn = handleMemoryFull();
+
 	}
 	//Read page from executable. Update IPT, and PageTable
 
@@ -729,11 +807,17 @@ int handleIPTMiss(int vpn) {
 
 
 void handlePageFault(int vpn) {
+
 	//Searching the IPT
+
 	int ppn = -1;
+
 	bool inIPT = false;
 
+
+
 	cout << "from ipt:  vnp = " << ipt->entries[vpn].virtualPage << "  ppn = " << ipt->entries[vpn].physicalPage << "    valid " << ipt->entries[vpn].valid << "  dirty  " << ipt->entries[vpn].dirty << endl;
+
 	for (int i = 0; i < NumPhysPages; i++) {
 		if (ipt->entries[vpn].valid && ipt->entries[vpn].virtualPage == vpn &&  ipt->entries[vpn].owner == currentThread->space) {
 			ppn = i;
@@ -746,7 +830,9 @@ void handlePageFault(int vpn) {
 		ppn = handleIPTMiss(vpn);
 	}
 	//Update TLB
+
 	if (inIPT) {
+
 		machine->tlb[machine->currentTLB].virtualPage = ipt->entries[ppn].virtualPage;
 		machine->tlb[machine->currentTLB].physicalPage = ipt->entries[ppn].physicalPage;
 		machine->tlb[machine->currentTLB].valid = ipt->entries[ppn].valid;
@@ -755,12 +841,20 @@ void handlePageFault(int vpn) {
 		machine->tlb[machine->currentTLB].dirty = ipt->entries[ppn].dirty;
 
 		machine->currentTLB = (machine->currentTLB + 1) % TLBSize;
+
 	}
+
 	else {
 
+
+
 	}
 
+
+
 }
+
+
 
 
 
@@ -882,6 +976,26 @@ void ExceptionHandler(ExceptionType which) {
 				DEBUG('a', "Rand syscall.\n");
 				rv = Rand_Syscall();
 				break;
+				
+			case SC_CreateMonitor:
+				DEBUG('a', "CreateMonitor syscall.\n");
+				//CreateMonitor_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+				break;
+
+			case SC_SetMonitor:
+				DEBUG('a', "SetMonitor syscall.\n");
+				//SetMonitor_Syscall(machine->ReadRegister(4), machine->ReadRegister(5), machine->ReadRegister(6));
+				break;
+
+			case SC_GetMonitor:
+				DEBUG('a', "GetMonitor syscall.\n");
+				//GetMonitor_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+				break;
+
+			case SC_DestroyMonitor:
+				DEBUG('a', "DestroyMonitor syscall.\n");
+				//DestroyMonitor_Syscall(machine->ReadRegister(4));				
+				break;
 
 
 			}
@@ -903,16 +1017,27 @@ void ExceptionHandler(ExceptionType which) {
 
 
 			//cout << "from pagetable:  vnp = " << currentThread->space->pageTable[vpn].virtualPage << "  ppn = " << currentThread->space->pageTable[vpn].physicalPage << endl;
+
 			//cout << "    valid " << currentThread->space->pageTable[vpn].valid << "  dirty  " << currentThread->space->pageTable[vpn].dirty << endl;
 
+
+
 			//machine->tlb[machine->currentTLB].virtualPage = currentThread->space->pageTable[vpn].virtualPage;
+
 			//machine->tlb[machine->currentTLB].physicalPage = currentThread->space->pageTable[vpn].physicalPage;
+
 			//machine->tlb[machine->currentTLB].valid = currentThread->space->pageTable[vpn].valid;
+
 			//machine->tlb[machine->currentTLB].readOnly = currentThread->space->pageTable[vpn].readOnly;
+
 			//machine->tlb[machine->currentTLB].use = currentThread->space->pageTable[vpn].use;
+
 			//machine->tlb[machine->currentTLB].dirty = currentThread->space->pageTable[vpn].dirty;
 
+
+
 			//machine->currentTLB = (machine->currentTLB + 1) % TLBSize;
+
 
 
 
