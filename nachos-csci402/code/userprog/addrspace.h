@@ -23,17 +23,16 @@
 #define MaxChildSpaces 256
 
 #define THREADTABLE
+//#ifdef PAGETABLEMEMBERS//This would be better...?
 
-
-class PageTableEntry: public TranslationEntry{
-    public:
-
-	int	byteOffset;   //location of a virtual page in the executable/swapfile 
-	int diskLocation; // (1)swap, (2)executable, or (-1)neither.
-
-    
-    // Assignment operator does a deep copy
-    PageTableEntry &operator=(const PageTableEntry& entry);
+class PageTableEntry : public TranslationEntry{
+public:
+#ifdef PAGETABLEMEMBERS
+	bool stackPage; //True if this is a stack page...Should be deleted when this thread is removed..?
+	int currentThreadID;    //The currentThreadID
+#endif
+	// Assignment operator does a deep copy
+	PageTableEntry &operator=(const PageTableEntry& entry);
 };
 
 #ifdef THREADTABLE
@@ -41,46 +40,42 @@ class PageTableEntry: public TranslationEntry{
 #include <vector>
 using namespace std;
 class ThreadTableEntry{
-    public: 
-        int threadID;
-        vector<int> stackPages;
+public:
+	int threadID;
+	vector<int> stackPages;
 };
 #endif
 
 
 class AddrSpace {
-  public:
-	  AddrSpace(char *filename);	// Create an address space,
-					// initializing it with the program
-					// stored in the file "executable"
-	  OpenFile *executable;
-    ~AddrSpace();			// De-allocate an address space
+public:
+	AddrSpace(OpenFile *executable);	// Create an address space,
+	// initializing it with the program
+	// stored in the file "executable"
+	~AddrSpace();			// De-allocate an address space
 
-    void InitRegisters();		// Initialize user-level CPU registers,
-					// before jumping to user code
+	void InitRegisters();		// Initialize user-level CPU registers,
+	// before jumping to user code
 
-    void SaveState();			// Save/restore address space-specific
-    void RestoreState();		// info on a context switch
-    Table fileTable;			// Table of openfiles
+	void SaveState();			// Save/restore address space-specific
+	void RestoreState();		// info on a context switch
+	Table fileTable;			// Table of openfiles
 
-    void Fork(int nextInstruction);//Can be called to add a stack
-    void Exit();//Deletes 8 pages of stack for current thread.
+	void Fork(int nextInstruction);//Can be called to add a stack
+	void Exit();//Deletes 8 pages of stack for current thread.
 
-
-	PageTableEntry *pageTable;	// Assume linear page table translation
-    
 private:
-	#ifdef THREADTABLE
-    //vector<ThreadTableEntry*> threadTable;
-    map<int, ThreadTableEntry*> threadTable;
-    #endif
-					// for now!
-    unsigned int numPages;		// Number of pages in the virtual 
-    unsigned int numNonStackPages;
-					// address space
-    int FindPPN();  //Returns a ppn if found otherwise prints a message and halts nachos
-
-
+	PageTableEntry *pageTable;	// Assume linear page table translation
+#ifdef THREADTABLE
+	//vector<ThreadTableEntry*> threadTable;
+	map<int, ThreadTableEntry*> threadTable;
+#endif
+	// for now!
+	unsigned int numPages;		// Number of pages in the virtual 
+	unsigned int numNonStackPages;
+	// address space
+	int FindPPN();  //Returns a ppn if found otherwise prints a message and halts nachos
 };
 
 #endif // ADDRSPACE_H
+

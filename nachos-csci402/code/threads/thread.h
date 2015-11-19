@@ -146,3 +146,4 @@ void SWITCH(Thread *oldThread, Thread *newThread);
 }
 
 #endif // THREAD_H
+

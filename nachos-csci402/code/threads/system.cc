@@ -20,7 +20,7 @@ Timer *timer;				// the hardware timer device,
 					// for invoking context switches
 #ifdef USER_PROGRAM
 BitMap *pageTableBitMap;    //Bitmap to track unused pages
-BitMap *swapFileBitMap;
+//BitMap *swapFileBitMap;
 //List *FIFOReplacementQueue;
 //std::map<AddrSpace*,ableEntry*> processTable;
 
@@ -84,42 +84,42 @@ bool ProcessTableClass::deleteProcess(AddrSpace* spc){
 }
 
 ProcessTableClass* ProcessTable;
-
-IPTEntry &IPTEntry::operator=(const IPTEntry& entry){
-	DEBUG('f', "IPTEntry assignment opperator.\n");
-	if (&entry != this) // check for self assignment
-	{
-		virtualPage = entry.virtualPage;
-		physicalPage = entry.physicalPage;
-		valid = entry.valid;
-		use = entry.use;
-		dirty = entry.dirty;
-		readOnly = entry.readOnly;
-		owner = entry.owner;
-	}
-	return *this;
-}
-
-IPTClass::IPTClass(int numPages) {
-	entries = new IPTEntry[numPages];
-}
-IPTClass::IPTClass() {
-	entries = new IPTEntry[NumPhysPages];
-}
-
-IPTClass &IPTClass::operator=(const IPTClass& otherIPT){
-	DEBUG('f', "IPTClass assignment opperator.\n");
-	IPTEntry ent;
-	int i = 0;
-	do {
-		ent = (this->entries[i]) = (ipt->entries[i]);
-		i++;
-	} while ((ent.virtualPage != NULL) && (ent.physicalPage != NULL));
-
-	return *this;
-}
-
-IPTClass* ipt;
+//
+//IPTEntry &IPTEntry::operator=(const IPTEntry& entry){
+//	DEBUG('f', "IPTEntry assignment opperator.\n");
+//	if (&entry != this) // check for self assignment
+//	{
+//		virtualPage = entry.virtualPage;
+//		physicalPage = entry.physicalPage;
+//		valid = entry.valid;
+//		use = entry.use;
+//		dirty = entry.dirty;
+//		readOnly = entry.readOnly;
+//		owner = entry.owner;
+//	}
+//	return *this;
+//}
+//
+//IPTClass::IPTClass(int numPages) {
+//	entries = new IPTEntry[numPages];
+//}
+//IPTClass::IPTClass() {
+//	entries = new IPTEntry[NumPhysPages];
+//}
+//
+//IPTClass &IPTClass::operator=(const IPTClass& otherIPT){
+//	DEBUG('f', "IPTClass assignment opperator.\n");
+//	IPTEntry ent;
+//	int i = 0;
+//	do {
+//		ent = (this->entries[i]) = (ipt->entries[i]);
+//		i++;
+//	} while ((ent.virtualPage != NULL) && (ent.physicalPage != NULL));
+//
+//	return *this;
+//}
+//
+//IPTClass* ipt;
 
 #endif
 
@@ -252,7 +252,7 @@ Initialize(int argc, char **argv)
     pageTableBitMap = new BitMap(NumPhysPages);
 	
     ProcessTable = new ProcessTableClass;
-	ipt = new IPTClass;
+	//ipt = new IPTClass;
 #endif
     interrupt->Enable();
     CallOnUserAbort(Cleanup);			// if user hits ctl-C
@@ -289,7 +289,7 @@ Cleanup()
 #ifdef USER_PROGRAM
     delete machine;
 delete pageTableBitMap;
-delete swapFileBitMap;
+//delete swapFileBitMap;
 #endif
 
 #ifdef FILESYS_NEEDED
@@ -306,4 +306,6 @@ delete swapFileBitMap;
     
     Exit(0);
 }
+
+
 
