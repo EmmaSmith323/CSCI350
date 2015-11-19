@@ -38,7 +38,7 @@ extern Timer *timer;				// the hardware alarm clock
 
 #include "bitmap.h"
 extern BitMap *pageTableBitMap;	//Bitmap to track unused pages
-extern BitMap *swapFileBitMap;
+//extern BitMap *swapFileBitMap;
 //extern List *FIFOReplacementQueue;
 
 class ProcessTableEntry{
@@ -71,23 +71,23 @@ extern ProcessTableClass* ProcessTable;
 // The following class defines an entry in a IPT -- copied from TranslationEntry
 // with and added filed for the owner
 
-
-class IPTEntry : public TranslationEntry {
-public:
-	AddrSpace* owner;	//To keep track of which process owns the page.
-	IPTEntry &IPTEntry::operator=(const IPTEntry& entry);
-};
-
-class IPTClass{
-public:
-	IPTClass();
-	IPTClass(int numPages);
-	IPTEntry * entries;
-	IPTClass &IPTClass::operator=(const IPTClass& entry);
-};
-
-extern IPTClass* ipt;
-
+//
+//class IPTEntry : public TranslationEntry {
+//public:
+//	AddrSpace* owner;	//To keep track of which process owns the page.
+//	IPTEntry &IPTEntry::operator=(const IPTEntry& entry);
+//};
+//
+//class IPTClass{
+//public:
+//	IPTClass();
+//	IPTClass(int numPages);
+//	IPTEntry * entries;
+//	IPTClass &IPTClass::operator=(const IPTClass& entry);
+//};
+//
+//extern IPTClass* ipt;
+//
 
 
 //extern std::map<AddrSpace*, ProcessTableEntry*> processTable;	//The ProcessTable
@@ -112,3 +112,5 @@ extern PostOffice* postOffice;
 #endif
 
 #endif // SYSTEM_H
+
+
