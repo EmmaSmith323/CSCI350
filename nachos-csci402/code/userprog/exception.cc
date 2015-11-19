@@ -806,7 +806,7 @@ void DestroyMonitor_Syscall(int monitor)
 
 	MonitorTable[monitor] = NULL;
 	delete me->monitorArray;
-	//me->monitorArray = NULL;
+	me->monitorArray = NULL;
 	delete me->nameBuf;
 	me->nameBuf = NULL;
 	delete me;
