@@ -712,9 +712,10 @@ int Rand_Syscall(){
 ///////////////////////////////////////////////////////////////////////////////////////////
 class MonitorTableEntry{
 public:
-	Semaphore* semaphore;
+	int* monitorArray;
+	int arrayLength;
+	char* nameBuf;
 	AddrSpace* space;
-	bool isToBeDeleted;
 };
 
 #define MonitorTableSize 200
@@ -737,41 +738,80 @@ bool Monitor_Syscall_InputValidation(int monitor)
 	return TRUE;
 }
 
-//Maybe the name is created in the Semaphore constructor and not here?
-void CreateMonitor_Syscall(unsigned int name, int size)
+int CreateMonitor_Syscall(unsigned int name, int sSize, int aLength)
 {
 	DEBUG('C', "In CreateMonitor_Syscall\n");
+	int monitorID = MonitorTableBitMap.Find();
+	if(monitorID == -1){
+		printf("Max Number of Monitor Variables created. Unable to CreateMonitor\n");
+		return -1;
+	}
+
+	MonitorTableEntry* me = new MonitorTableEntry();
+	me->monitorArray = new int[aLength];
+	me->arrayLength = aLength;
+	copyin(name, sSize, me->nameBuf);
+	me->space = currentThread->space;
+	
+	MonitorTable[monitorID] = me;
+
+	return monitorID;
 }
 
 void SetMonitor_Syscall(int id, int index, int value)
 {
-	DEBUG('C', "In SetMonitor_Syscall\n");
+	DEBUG('M', "In SetMonitor_Syscall\n");
+	
+	if(!Monitor_Syscall_InputValidation(id)){
+		printf("Unable to SetMonitor.\n");
+		return;
+	}
+	
+	MonitorTableEntry* me = MonitorTable[id];
+	if (me->arrayLength <= index)
+	{
+		printf("Index is greater or equal to size of Monitor Variable array. Unable to SetMonitor\n");
+		return;
+	}
+	else
+	{
+		me->monitorArray[index] = value;
+	}
 }
 
 int GetMonitor_Syscall(int id, int index)
 {
-	DEBUG('C', "In GetMonitor_Syscall\n");
-	return 0; ///temporary
+	DEBUG('M', "In GetMonitor_Syscall\n");
+	if(!Monitor_Syscall_InputValidation(id)){
+		printf("Unable to GetMonitor.\n");
+		return -1;
+	}
+	MonitorTableEntry* me = MonitorTable[id];
+	if (me->arrayLength <= index)
+	{
+		printf("Index is greater or equal to size of Monitor Variable array. Unable to GetMonitor\n");
+		return -1;
+	}
+	else
+	{
+		return me->monitorArray[index];
+	}
 }
 
 void DestroyMonitor_Syscall(int monitor)
 {
-	DEBUG('C', "In DestroyMonitor_Syscall\n");
+	DEBUG('M', "In DestroyMonitor_Syscall\n");
 	
-	//MonitorTableEntry* me = MonitorTable[monitor];
+	MonitorTableEntry* me = MonitorTable[monitor];
 
-	//Won't work as semaphore does not have an isBusy() function
-	//if((me->semaphore->isBusy()) ){
-	//	me->isToBeDeleted = TRUE;
-	//	DEBUG('C', "Monitor %i BUSY marking for deletion.\n", monitor);
-	//}else{
-	//	MonitorTable[monitor] = NULL;
-	//	delete me->semaphore;
-	//	me->semaphore = NULL;
-	//	delete me;
-	//	MonitorTableBitMap.Clear(monitor);
-	//	DEBUG('C', "Monitor %i deleted.\n", monitor);
-	//}
+	MonitorTable[monitor] = NULL;
+	delete me->monitorArray;
+	//me->monitorArray = NULL;
+	delete me->nameBuf;
+	me->nameBuf = NULL;
+	delete me;
+	MonitorTableBitMap.Clear(monitor);
+	DEBUG('M', "Monitor %i deleted.\n", monitor);
 }
 
 

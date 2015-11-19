@@ -188,7 +188,7 @@ int Rand();
 *	Monitor Syscalls
 *
 **************************/
-void CreateMonitor(char* name, int size);
+int CreateMonitor(char* name, int size);
 void SetMonitor(int id, int index, int value);
 int GetMonitor(int id, int index);
 void DestroyMonitor(int id);
