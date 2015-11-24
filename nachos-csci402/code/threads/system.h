@@ -71,23 +71,25 @@ extern ProcessTableClass* ProcessTable;
 // The following class defines an entry in a IPT -- copied from TranslationEntry
 // with and added filed for the owner
 
-//
-//class IPTEntry : public TranslationEntry {
-//public:
-//	AddrSpace* owner;	//To keep track of which process owns the page.
-//	IPTEntry &IPTEntry::operator=(const IPTEntry& entry);
-//};
-//
-//class IPTClass{
-//public:
-//	IPTClass();
-//	IPTClass(int numPages);
-//	IPTEntry * entries;
-//	IPTClass &IPTClass::operator=(const IPTClass& entry);
-//};
-//
-//extern IPTClass* ipt;
-//
+
+class IPTEntry : public TranslationEntry {
+public:
+
+
+	AddrSpace* owner;	//To keep track of which process owns the page.
+	IPTEntry &IPTEntry::operator=(const IPTEntry& entry);
+};
+
+class IPTClass{
+public:
+	IPTClass();
+	IPTClass(int numPages);
+	IPTEntry * entries;
+	IPTClass &IPTClass::operator=(const IPTClass& entry);
+};
+
+extern IPTClass* ipt;
+
 
 
 //extern std::map<AddrSpace*, ProcessTableEntry*> processTable;	//The ProcessTable

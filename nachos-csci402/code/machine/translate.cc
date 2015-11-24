@@ -197,7 +197,7 @@ Machine::WriteMem(int addr, int size, int value)
 ExceptionType
 Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
 {
-    int i;
+    int i; 
     unsigned int vpn, offset;
     TranslationEntry *entry;
     unsigned int pageFrame;

@@ -21,7 +21,7 @@
 #include "noff.h"
 #include "table.h"
 #include "synch.h"
-
+ 
 extern "C" { int bzero(char *, int); };
 
 Table::Table(int s) : map(s), table(0), lock(0), size(s) {
@@ -86,16 +86,15 @@ PageTableEntry &PageTableEntry::operator=(const PageTableEntry& entry){
 	DEBUG('f', "PageTableEntry assignment opperator.\n");
 	if (&entry != this) // check for self assignment
 	{
+		//byteOffset = entry.byteOffset;
+		//diskLocation = entry.diskLocation;
 		virtualPage = entry.virtualPage;
 		physicalPage = entry.physicalPage;
 		valid = entry.valid;
 		use = entry.use;
 		dirty = entry.dirty;
 		readOnly = entry.readOnly;
-#ifdef PAGETABLEMEMBERS
-		stackPage = entry.stackPage;
-		currentThreadID = entry.currentThreadID;
-#endif
+
 	}
 	return *this;
 }
@@ -182,25 +181,35 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 
 	for (i = 0; i < numPages; i++) {
 		int ppn = FindPPN();//The PPN of an unused page.
+		//cout << "the findPPN returned: " << ppn << endl;
 		pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
 		pageTable[i].physicalPage = ppn;
 		pageTable[i].valid = TRUE;
 		pageTable[i].use = FALSE;
 		pageTable[i].dirty = FALSE;
 		pageTable[i].readOnly = FALSE;  // if the code segment was entirely on 
+
+		//populating ipt
+		ipt->entries[i].virtualPage = i;
+		ipt->entries[i].physicalPage = ppn;
+		ipt->entries[i].valid = TRUE;
+		ipt->entries[i].use = FALSE;
+		ipt->entries[i].dirty = FALSE;
+		ipt->entries[i].readOnly = FALSE;
+		ipt->entries[i].owner = this;
+
+		//cout << "setting ipt and pagetable ppn: " << ppn << " for vpn: " << i <<  endl;
+	
+
 		// a separate page, we could set its 
 		// pages to be read-only
 		if (i < numNonStackPages){//Not stack
 			executable->ReadAt(&(machine->mainMemory[PageSize * ppn]), PageSize, noffH.code.inFileAddr + (i * PageSize));
-#ifdef PAGETABLEMEMBERS
-			pageTable[i].stackPage = FALSE;
-#endif
+
 		}
 		else{//Stack
 			DEBUG('a', "Initializing stack page, vpn: %i\n", i);
-#ifdef PAGETABLEMEMBERS
-			pageTable[i].stackPage = TRUE;
-#endif
+
 
 #ifdef THREADTABLE
 			DEBUG('E', "Initializing stack page threadtable, vpn: %i, for threadID: %i\n", i, currentThread->getThreadID());
@@ -208,10 +217,8 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 #endif
 
 		}
-#ifdef PAGETABLEMEMBERS
-		pageTable[i].currentThreadID = currentThread->getThreadID();
-#endif
 	}
+	//while (true) {}
 
 	//We need to remember where this thread's stack is...
 
@@ -310,16 +317,25 @@ AddrSpace::Fork(int nextInstruction)
 
 	//Add 8 pages for stack
 	for (unsigned int i = numPages; i < newNumPages; i++){
+		int PPN = FindPPN();
 		pageTable[i].virtualPage = i;
-		pageTable[i].physicalPage = FindPPN();
+		pageTable[i].physicalPage = PPN;
 		pageTable[i].valid = TRUE;
 		pageTable[i].use = FALSE;
 		pageTable[i].dirty = FALSE;
 		pageTable[i].readOnly = FALSE;
-#ifdef PAGETABLEMEMBERS
-		pageTable[i].currentThreadID = currentThread->getThreadID();
-		pageTable[i].stackPage = TRUE;
-#endif
+
+		//populating ipt
+		ipt->entries[i].virtualPage = i;
+		ipt->entries[i].physicalPage = PPN;
+		ipt->entries[i].valid = TRUE;
+		ipt->entries[i].use = FALSE;
+		ipt->entries[i].dirty = FALSE;
+		ipt->entries[i].readOnly = FALSE;
+		ipt->entries[i].owner = this;
+
+
+
 #ifdef THREADTABLE
 		DEBUG('E', "Initializing stack page threadtable, vpn: %i, for threadID: %i\n", i, currentThread->getThreadID());
 		threadTable[currentThread->getThreadID()]->stackPages.push_back(i);
@@ -372,20 +388,6 @@ void AddrSpace::Exit(){
 
 #endif
 
-
-#ifdef PAGETABLEMEMBERS
-	for (unsigned int i = numNonStackPages; i < numPages; i++){
-		if (pageTable[i].stackPage == TRUE && pageTable[i].currentThreadID == currentThreadID){
-			pageTable[i].valid = FALSE;
-			pageTableBitMap->Clear(pageTable[i].physicalPage);
-			pageTable[i].physicalPage = -1;
-			stackPagesCleared++;
-		}
-		if (stackPagesCleared == (UserStackSize * PageSize)){
-			break;
-		}
-	}
-#endif
 
 
 
@@ -450,9 +452,29 @@ void AddrSpace::SaveState()
 //
 //      For now, tell the machine where to find the page table.
 //----------------------------------------------------------------------
-
+int i;
 void AddrSpace::RestoreState()
 {
-	machine->pageTable = pageTable;
+	//machine->pageTable = pageTable;
 	machine->pageTableSize = numPages;
+
+	//Invalidate TLB
+
+	IntStatus oldLevel = interrupt->SetLevel(IntOff);   // disable interrupts
+	for (i = 0; i < TLBSize; i++) {
+		//Propogate the dirty bit.
+		if (machine->tlb[i].dirty == TRUE) {
+			int vpn = (machine->tlb[i].virtualPage) / PageSize;
+			//ipt->entries[vpn].dirty == TRUE;
+			machine->pageTable[vpn].dirty == TRUE;
+		}
+
+		machine->tlb[i].valid = FALSE;
+	}
+
+
+	(void)interrupt->SetLevel(oldLevel);   // re-enable interrupts
+
+
 }
+

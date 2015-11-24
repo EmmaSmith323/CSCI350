@@ -27,7 +27,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <string>
-#include "synch.h"
+#include "synch.h" 
 #include "bitmap.h"
 using namespace std;
 
@@ -354,6 +354,8 @@ void Exit_Syscall(int status){
 	execLock.Acquire();
 	kernel_threadLock.Acquire();//TODO: RACE CONDITION THIS WONT WORK!!!?
 
+	cout << "exit readReg 4:    " << machine->ReadRegister(2) << endl;
+	cout << "exit status:  " << status << endl;
 	//Case 1
 		//Not last thread in process
 		//reclaim 8 pages of stack
@@ -859,47 +861,45 @@ void DestroyMonitor_Syscall(int monitor)
 
 
 
-//void handlePageFault(int vpn) {
-//
-//	cout << "handle page fault. "<< endl;
-//
-//	//Searching the IPT
-//
-//	int ppn = -1;
-//
-//
-//
-//	cout << "from ipt:  vnp = " << ipt->entries[vpn].virtualPage << "  ppn = " << ipt->entries[vpn].physicalPage << "    valid " << ipt->entries[vpn].valid << "  dirty  " << ipt->entries[vpn].dirty << endl;
-//
-//
-//	for (int i = 0; i < NumPhysPages; i++) {
-//		if (ipt->entries[vpn].valid && ipt->entries[vpn].virtualPage == vpn &&  ipt->entries[vpn].owner == currentThread->space) {
-//			ppn = i;
-//			cout << "Got it in ipt.  ppn = " << i << endl;
-//			break;
-//		}
-//	}
-//	if (ppn = -1) {
-//		//Handle IPT miss
-//		ppn = handleIPTMiss(vpn);
-//	}
-//
-//	//Update TLB, even if IPT miss it will be in IPT by now.
-//
-//	machine->tlb[machine->currentTLB].virtualPage = ipt->entries[ppn].virtualPage;
-//	machine->tlb[machine->currentTLB].physicalPage = ipt->entries[ppn].physicalPage;
-//	machine->tlb[machine->currentTLB].valid = ipt->entries[ppn].valid;
-//	machine->tlb[machine->currentTLB].readOnly = ipt->entries[ppn].readOnly;
-//	machine->tlb[machine->currentTLB].use = ipt->entries[ppn].use;
-//	machine->tlb[machine->currentTLB].dirty = ipt->entries[ppn].dirty;
-//
-//	machine->currentTLB = (machine->currentTLB + 1) % TLBSize;
-//
-//	
-//
-//
-//
-//}
+void handlePageFault(int vpn) {
+
+	//cout << "handle page fault. vpn is "<< vpn << endl;
+
+	//Searching the IPT
+
+	int ppn = -1;
+	//cout << "from ipt:  vnp = " << ipt->entries[vpn].virtualPage << "  ppn = " << ipt->entries[vpn].physicalPage << "    valid " << ipt->entries[vpn].valid << "  dirty  " << ipt->entries[vpn].dirty << endl;
+
+
+	for (int i = 0; i < NumPhysPages; i++) {
+		//cout << "ipt valid? " << ipt->entries[vpn].valid << "  ipt vpn is " << ipt->entries[vpn].virtualPage << " looking for vpn " << vpn << endl;
+		//cout << "this owner is " << ipt->entries[vpn].owner << "  current space is " << currentThread->space << endl;
+		if (ipt->entries[vpn].valid && ipt->entries[vpn].virtualPage == vpn &&  ipt->entries[vpn].owner == currentThread->space) {
+			ppn = ipt->entries[vpn].physicalPage;
+			//cout << "Got it in ipt.  ppn = " << i << endl;
+			break;
+		}
+	}
+	if (ppn == -1) {
+		//Handle IPT miss
+		//ppn = handleIPTMiss(vpn);
+	}
+
+	//Update TLB, even if IPT miss it will be in IPT by now.
+
+	machine->tlb[machine->currentTLB].virtualPage = ipt->entries[ppn].virtualPage;
+	machine->tlb[machine->currentTLB].physicalPage = ipt->entries[ppn].physicalPage;
+	machine->tlb[machine->currentTLB].valid = ipt->entries[ppn].valid;
+	machine->tlb[machine->currentTLB].readOnly = ipt->entries[ppn].readOnly;
+	machine->tlb[machine->currentTLB].use = ipt->entries[ppn].use;
+	machine->tlb[machine->currentTLB].dirty = ipt->entries[ppn].dirty;
+
+	machine->currentTLB = (machine->currentTLB + 1) % TLBSize;
+
+	return;
+
+
+}
 
 
 void ExceptionHandler(ExceptionType which) {
@@ -1050,37 +1050,30 @@ void ExceptionHandler(ExceptionType which) {
 			machine->WriteRegister(NextPCReg, machine->ReadRegister(PCReg) + 4);
 			return;
 
-			//} else if (which == PageFaultException) {
+			} else if (which == PageFaultException) {
 
-			////Do TLB population here
-			//int vpn = (int)(machine->registers[BadVAddrReg]/PageSize);
+			//Do TLB population here
+			int vpn = (int)(machine->registers[BadVAddrReg]/PageSize);
 			//cout << "pageFaultException. vpn = " << vpn << endl;
 
-			//handlePageFault(vpn);
+
+
+			handlePageFault(vpn);
+
+			//cout << "from pagetable:  vnp = " << currentThread->space->pageTable[vpn].virtualPage << "  ppn = " << currentThread->space->pageTable[vpn].physicalPage << endl;
+			//cout << "    valid " << currentThread->space->pageTable[vpn].valid << "  dirty  " << currentThread->space->pageTable[vpn].dirty << endl;
 
 
 
-			////cout << "from pagetable:  vnp = " << currentThread->space->pageTable[vpn].virtualPage << "  ppn = " << currentThread->space->pageTable[vpn].physicalPage << endl;
-
-			////cout << "    valid " << currentThread->space->pageTable[vpn].valid << "  dirty  " << currentThread->space->pageTable[vpn].dirty << endl;
-
-
-
-			////machine->tlb[machine->currentTLB].virtualPage = currentThread->space->pageTable[vpn].virtualPage;
-
-			////machine->tlb[machine->currentTLB].physicalPage = currentThread->space->pageTable[vpn].physicalPage;
-
-			////machine->tlb[machine->currentTLB].valid = currentThread->space->pageTable[vpn].valid;
-
-			////machine->tlb[machine->currentTLB].readOnly = currentThread->space->pageTable[vpn].readOnly;
-
-			////machine->tlb[machine->currentTLB].use = currentThread->space->pageTable[vpn].use;
-
-			////machine->tlb[machine->currentTLB].dirty = currentThread->space->pageTable[vpn].dirty;
-
-
-
-			////machine->currentTLB = (machine->currentTLB + 1) % TLBSize;
+			//machine->tlb[machine->currentTLB].virtualPage = currentThread->space->pageTable[vpn].virtualPage;
+			//machine->tlb[machine->currentTLB].physicalPage = currentThread->space->pageTable[vpn].physicalPage;
+			//machine->tlb[machine->currentTLB].valid = currentThread->space->pageTable[vpn].valid;
+			//machine->tlb[machine->currentTLB].readOnly = currentThread->space->pageTable[vpn].readOnly;
+			//machine->tlb[machine->currentTLB].use = currentThread->space->pageTable[vpn].use;
+			//machine->tlb[machine->currentTLB].dirty = currentThread->space->pageTable[vpn].dirty;
+			//
+			//
+			//machine->currentTLB = (machine->currentTLB + 1) % TLBSize;
 
 
 

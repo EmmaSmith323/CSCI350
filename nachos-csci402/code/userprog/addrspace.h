@@ -23,14 +23,11 @@
 #define MaxChildSpaces 256
 
 #define THREADTABLE
-//#ifdef PAGETABLEMEMBERS//This would be better...?
+
 
 class PageTableEntry : public TranslationEntry{
 public:
-#ifdef PAGETABLEMEMBERS
-	bool stackPage; //True if this is a stack page...Should be deleted when this thread is removed..?
-	int currentThreadID;    //The currentThreadID
-#endif
+
 	// Assignment operator does a deep copy
 	PageTableEntry &operator=(const PageTableEntry& entry);
 };
@@ -64,8 +61,10 @@ public:
 	void Fork(int nextInstruction);//Can be called to add a stack
 	void Exit();//Deletes 8 pages of stack for current thread.
 
+	//TODO:change back to private?
+PageTableEntry *pageTable;	// Assume linear page table translation
 private:
-	PageTableEntry *pageTable;	// Assume linear page table translation
+	
 #ifdef THREADTABLE
 	//vector<ThreadTableEntry*> threadTable;
 	map<int, ThreadTableEntry*> threadTable;
