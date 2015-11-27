@@ -29,11 +29,6 @@
 #include <string>
 #include "synch.h" 
 #include "bitmap.h"
-
-#include "network.h"
-#include "post.h"
-#include "interrupt.h"
-
 using namespace std;
 
 int copyin(unsigned int vaddr, int len, char *buf) {
@@ -288,65 +283,35 @@ int execCalled = 0;
 //Lock* kernel_exec_lock = new Lock("Kernel Exec lock for filename...");
 //char *kernel_execBUF = null;
 void kernel_exec(int intName){
-
 	char* name = (char*)intName;
-
 	DEBUG('e', "Kernel_exec system call: FileName: %s \n\n", name);
 
-
-
 	OpenFile *executable = fileSystem->Open(name);
-
 	AddrSpace *space;
 
-
-
 	if (executable == NULL) {
-
 		printf("Unable to open file %s\n", name);
-
 		return;
-
 	}
-
-
 
 	space = new AddrSpace(executable);
 
-
-
 	currentThread->space = space;
-
 	//processTable.insert(space, (new ProcessTableEntry(space)));
-
 	ProcessTable->addProcess(space);
-
 	delete executable;      // close file
 
-
-
 	space->InitRegisters();   // set the initial register values
-
 	space->RestoreState();    // load page table register
-
 	delete[] name;
-
 	execLock.Acquire();
-
 	execCalled--;
-
 	execLock.Release();
-
 	machine->Run();     // jump to the user progam
-
 	ASSERT(FALSE);      // machine->Run never returns;
-
 	// the address space exits
-
 	// by doing the syscall "exit"*/
-
 }
-
 
 SpaceId Exec_Syscall(unsigned int vaddr, int len){
 		execLock.Acquire();
@@ -790,16 +755,13 @@ int CreateMonitor_Syscall(unsigned int name, int sSize, int aLength)
 	}
 
 	MonitorTableEntry* me = new MonitorTableEntry();
-	if (copyin(name, sSize, me->nameBuf) == -1)
-	{
-		printf("%s","Bad pointer passed to Create\n");
-		delete me->nameBuf;
-		return -1;
-	}
 	me->monitorArray = new int[aLength];
 	me->arrayLength = aLength;
+	copyin(name, sSize, me->nameBuf);
 	me->space = currentThread->space;
+	
 	MonitorTable[monitorID] = me;
+
 	return monitorID;
 }
 
@@ -860,39 +822,9 @@ void DestroyMonitor_Syscall(int monitor)
 }
 
 
-//////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////
-//
-//	Remote Procedure Call Functions
-///////////////////////////////////////////////////////////////////////////////////////////
-//void ClientDataTransfer(unsigned int name, int sysIndex, int firstArg, int secondArg, int thirdArg)
-//{
-//		PacketHeader outPktHdr, inPktHdr;
-//    	MailHeader outMailHdr, inMailHdr;
-//    	char *data;
-//    	char *ack = "Syscall info recieved";
-//    	char buffer[MaxMailSize];
-    	
-    	//write data (as in, sysIndex, name, and all the args) to 'data')
-    		
-    	//outPktHdr.to = farAddr;
-    	//outPktHdr.to = 0;		
-    	///outMailHdr.to = 0;
-    	//outMailHdr.from = 1;
-   		//outMailHdr.length = strlen(data) + 1;
-   		
-   		//bool success = postOffice->Send(outPktHdr, outMailHdr, data); 
-   		
-   		//if ( !success ) {
-      	//	printf("The postOffice Send failed. You must not have the other Nachos running. Terminating Nachos.\n");
-      	//	interrupt->Halt();
-    	//}
-    	
-    	//postOffice->Receive(0, &inPktHdr, &inMailHdr, buffer);
-   		//printf("Got \"%s\" from %d, box %d\n",buffer,inPktHdr.from,inMailHdr.from);
-   		//take the buffer, and 
-    	//fflush(stdout);		
-//}
+
+
+
 
 
 //
@@ -1130,22 +1062,22 @@ void ExceptionHandler(ExceptionType which) {
 				
 			case SC_CreateMonitor:
 				DEBUG('a', "CreateMonitor syscall.\n");
-				rv = CreateMonitor_Syscall(machine->ReadRegister(4), machine->ReadRegister(5), machine->ReadRegister(6));
+				//CreateMonitor_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
 				break;
 
 			case SC_SetMonitor:
 				DEBUG('a', "SetMonitor syscall.\n");
-				SetMonitor_Syscall(machine->ReadRegister(4), machine->ReadRegister(5), machine->ReadRegister(6));
+				//SetMonitor_Syscall(machine->ReadRegister(4), machine->ReadRegister(5), machine->ReadRegister(6));
 				break;
 
 			case SC_GetMonitor:
 				DEBUG('a', "GetMonitor syscall.\n");
-				rv = GetMonitor_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+				//GetMonitor_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
 				break;
 
 			case SC_DestroyMonitor:
 				DEBUG('a', "DestroyMonitor syscall.\n");
-				DestroyMonitor_Syscall(machine->ReadRegister(4));				
+				//DestroyMonitor_Syscall(machine->ReadRegister(4));				
 				break;
 
 
