@@ -890,7 +890,7 @@ void DestroyMonitor_Syscall(int monitor)
     	
     	//postOffice->Receive(0, &inPktHdr, &inMailHdr, buffer);
    		//printf("Got \"%s\" from %d, box %d\n",buffer,inPktHdr.from,inMailHdr.from);
-   		//take the buffer, and 
+   		//take the buffer, and break it into the necessary data
     	//fflush(stdout);		
 //}
 

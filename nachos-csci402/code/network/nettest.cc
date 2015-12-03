@@ -80,3 +80,181 @@ MailTest(int farAddr)
     // Then we're done!
     interrupt->Halt();
 }
+
+//server functions
+//make sure to add support for servers sending information to other servers, for project 4
+//for now, they will be called by their respective syscall name
+void networkTest()
+{
+	//get the network to work with the clients
+	PacketHeader outPktHdr, inPktHdr;
+    MailHeader outMailHdr, inMailHdr;
+    char *data = "Hello there!";
+    char *ack = "Got it!";
+    char buffer[MaxMailSize];
+    
+    //the 'data' will end up being the name of the Lock/CV/MV, and/or the syscall name
+    int syscall_index = -1;
+    int rv = -1;
+    
+    //set syscall_index to whatever is passed to it by the syscalls in exception.cc
+    //syscall_index = part of data that contains the 'syscall index', or 'sysIndex' in exception.cc
+    switch (syscall_index)
+    {
+    	case SC_CreateLock:
+			DEBUG('a', "CreateLock syscall.\n");
+			rv = CreateLock();
+			break;
+
+		case SC_Acquire:
+			DEBUG('a', "Acquire syscall.\n");
+			rv = Acquire(machine->ReadRegister(4));
+			break;
+
+		case SC_Release:
+			DEBUG('a', "Release syscall.\n");
+			rv = Release(machine->ReadRegister(4));
+			break;
+
+		case SC_DestroyLock:
+			DEBUG('a', "DestroyLock syscall.\n");
+			rv = DestroyLock(machine->ReadRegister(4));
+			break;
+	}
+	
+	//write rv back to data and send it back out to the right client
+
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////
+//
+//	Lock Syscalls
+///////////////////////////////////////////////////////////////////////////////////////////
+class LockTableEntry{
+public:
+	Lock* lock;
+	AddrSpace* space;
+	bool isToBeDeleted;
+};
+#define lockTableSize 200
+BitMap lockTableBitMap(lockTableSize);
+LockTableEntry* lockTable[lockTableSize];
+
+
+bool Lock_Syscall_InputValidation(int lock){
+	if(lock < 0 || lock >= lockTableSize){
+		printf("Invalid Lock Identifier: %i ", lock);
+		return FALSE;
+	}
+
+	LockTableEntry* lockEntry = lockTable[lock];
+
+	if(lockEntry == NULL){
+		printf("Lock %i does not exist. ", lock);
+		return FALSE;
+	}
+	if(lockEntry->space != currentThread->space){
+		printf("Lock %i does not belong to this process. ", lock);
+		return FALSE;
+	}
+	return TRUE;
+}
+
+
+///////////////////////////////
+// Creates the Lock
+///////////////////////////////
+int CreateLock(){
+	DEBUG('L', "In CreateLock_Syscall\n");
+
+	int lockTableIndex = lockTableBitMap.Find();
+	if(lockTableIndex == -1){
+		printf("Max Number of Locks created. Unable to CreateLock\n");
+		return -1;
+	}
+
+	LockTableEntry* te = new LockTableEntry();
+	te->lock = new Lock("Lock " + lockTableIndex);
+	te->space = currentThread->space;
+	te->isToBeDeleted = FALSE;
+
+	lockTable[lockTableIndex] = te;
+
+	return lockTableIndex;
+}
+
+//changed Acquire_Syscall to return the lock number
+/***********************
+*	Acquire the lock
+*/
+int Acquire(int lock){
+	DEBUG('L', "In Acquire_Syscall\n");
+
+	if(!Lock_Syscall_InputValidation(lock)){
+	 printf("Unable to Acquire.\n");
+	 return -1;
+	}
+
+	DEBUG('L', "Acquiring lock.\n");
+	lockTable[lock]->lock->Acquire();
+	return lock;
+}
+
+//changed Release_Syscall to return the lock number
+/*****************
+* 	Release the lock
+*/
+int Release(int lock){
+	DEBUG('L', "In Release_Syscall\n");
+
+	if(!Lock_Syscall_InputValidation(lock)){
+	 printf("Unable to Release.\n");
+	 return -1;
+	}
+	
+	LockTableEntry* le = lockTable[lock];
+
+	DEBUG('L', "Releasing lock.\n");
+	le->lock->Release();
+	
+	if(le->isToBeDeleted && !(le->lock->isBusy()) ){
+		DEBUG('L', "Lock %i no longer busy. Deleting.\n", lock);
+		delete le->lock;
+		le->lock = NULL;
+		delete le;
+		lockTable[lock] = NULL;
+		lockTableBitMap.Clear(lock);
+	}
+	return lock;
+}
+
+//changed Destroy_Syscall to return the lock number
+int DestroyLock_Syscall(int lock){
+	DEBUG('L', "In DestroyLock_Syscall\n");
+
+	if(!Lock_Syscall_InputValidation(lock)){
+	 printf("Unable to DestroyLock.\n");
+	 return -1;
+	}
+
+	LockTableEntry* le = lockTable[lock];
+
+	if((le->lock->isBusy()) ){
+		le->isToBeDeleted = TRUE;
+		DEBUG('L', "Lock %i BUSY marking for deletion.\n", lock);
+	}else{
+		delete le->lock;
+		le->lock = NULL;
+		delete le;
+		lockTable[lock] = NULL;
+		lockTableBitMap.Clear(lock);
+		DEBUG('L', "Lock %i deleted.\n", lock);
+	}
+	return lock;
+}
+
+
+
+
