@@ -84,22 +84,31 @@ MailTest(int farAddr)
 //server functions
 //make sure to add support for servers sending information to other servers, for project 4
 //for now, they will be called by their respective syscall name
-void networkTest()
+void NetworkTest()
 {
 	//get the network to work with the clients
 	PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
     char *data = "Hello there!";
-    char *ack = "Got it!";
     char buffer[MaxMailSize];
     
-    //the 'data' will end up being the name of the Lock/CV/MV, and/or the syscall name
-    int syscall_index = -1;
+     
+    postOffice->Recieve(0, &inPktHdr, &inMailHdr, buffer);
+    
+    //the 'data' (or 'buffer', in this case) will end up being the name of the Lock/CV/MV, and/or the syscall name
+    stringstream ss;
+	ss << buffer;
+    unsigned int name;
+    int sysIndex = -1;
+    int firstArg, secondArg, thirdArg;
+    
+    ss >> "A " >> name >> " " >> sysIndex >> " " firstArg >> " " >> secondArg >> " " >> thirdArg >> " \0";
+    
     int rv = -1;
     
     //set syscall_index to whatever is passed to it by the syscalls in exception.cc
     //syscall_index = part of data that contains the 'syscall index', or 'sysIndex' in exception.cc
-    switch (syscall_index)
+    switch (sysIndex)
     {
     	case SC_CreateLock:
 			DEBUG('a', "CreateLock syscall.\n");
@@ -108,21 +117,34 @@ void networkTest()
 
 		case SC_Acquire:
 			DEBUG('a', "Acquire syscall.\n");
-			rv = Acquire(machine->ReadRegister(4));
+			rv = Acquire(firstArg);
 			break;
 
 		case SC_Release:
 			DEBUG('a', "Release syscall.\n");
-			rv = Release(machine->ReadRegister(4));
+			rv = Release(firstArg);
 			break;
 
 		case SC_DestroyLock:
 			DEBUG('a', "DestroyLock syscall.\n");
-			rv = DestroyLock(machine->ReadRegister(4));
+			rv = DestroyLock(firstArg);
 			break;
 	}
 	
 	//write rv back to data and send it back out to the right client
+	//
+	
+	outPktHdr.to = inPktHdr.from;
+    outMailHdr.from = 0;
+    outMailHdr.to = inMailHdr.from;
+    success = postOffice->Send(outPktHdr, outMailHdr, data); 
+
+    if ( !success ) {
+      printf("The postOffice Send failed. You must not have the other Nachos running. Terminating Nachos.\n");
+      interrupt->Halt();
+    }
+    
+	interrupt->Halt();
 
 }
 

@@ -463,7 +463,7 @@ void PrintString_Syscall(unsigned int vaddr, int len){
 
 
 
-
+#ifdef USERPROGRAM
 //////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -737,15 +737,6 @@ void DestroyCondition_Syscall(int condition){
 
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////
-//
-//	Rand Syscall
-///////////////////////////////////////////////////////////////////////////////////////////
-
-int Rand_Syscall(){
-	return rand();
-}
 
 //////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -858,6 +849,129 @@ void DestroyMonitor_Syscall(int monitor)
 	MonitorTableBitMap.Clear(monitor);
 	DEBUG('M', "Monitor %i deleted.\n", monitor);
 }
+#endif
+
+//Project 3 Part 3 and beyond 
+#ifdef NETWORK
+//////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////
+//
+//	Lock Syscalls
+///////////////////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////
+// Creates the Lock
+///////////////////////////////
+int CreateLock_Syscall(){
+	DEBUG('L', "In CreateLock_Syscall\n");
+	int lockTableIndex = -1;
+	ClientDataTransfer("Lock", SC_CreateLock, 0, 0, 0);
+	return lockTableIndex;
+}
+
+
+/***********************
+*	Acquire the lock
+*/
+void Acquire_Syscall(int lock){
+	DEBUG('L', "In Acquire_Syscall\n");
+	ClientDataTransfer("Lock", SC_Acquire, lock, 0, 0);
+}
+
+/*****************
+* 	Release the lock
+*/
+void Release_Syscall(int lock){
+	DEBUG('L', "In Release_Syscall\n");
+	ClientDataTransfer("Lock", SC_Release, lock, 0, 0);
+}
+
+void DestroyLock_Syscall(int lock){
+	DEBUG('L', "In DestroyLock_Syscall\n");
+	ClientDataTransfer("Lock", SC_DestroyLock, lock, 0, 0);
+}
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////
+//
+//	Condition Syscalls
+///////////////////////////////////////////////////////////////////////////////////////////
+int CreateCondition_Syscall(){
+	DEBUG('C', "In CreateCondition_Syscall\n");
+	int conID = -1;
+	ClientDataTransfer("Condition", SC_CreateCondition, 0, 0, 0);
+	
+	return conID;
+}
+
+void Wait_Syscall(int condition, int lock){
+	DEBUG('C', "In Wait_Syscall\n");
+	ClientDataTransfer("Condition", SC_Wait, condition, lock, 0);
+}
+
+void Signal_Syscall(int condition, int lock){
+	DEBUG('C', "In Signal_Syscall\n");
+	ClientDataTransfer("Condition", SC_Signal, condition, lock, 0);
+}
+
+void Broadcast_Syscall(int condition, int lock){
+	DEBUG('C', "In Broadcast_Syscall\n");
+	ClientDataTransfer("Condition", SC_Broadcast, condition, lock, 0);
+}
+
+void DestroyCondition_Syscall(int condition){
+	DEBUG('C', "In DestroyCondition_Syscall\n");
+	ClientDataTransfer("Condition", SC_DestroyCondition, condition, 0, 0);
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////
+//
+//	Monitor Syscalls
+///////////////////////////////////////////////////////////////////////////////////////////
+int CreateMonitor_Syscall(unsigned int name, int sSize, int aLength)
+{
+	DEBUG('C', "In CreateMonitor_Syscall\n");
+	int monitorID = -1;
+	ClientDataTransfer(name, SC_CreateMonitor, sSize, aLength, 0);
+	
+	return monitorID;
+}
+
+void SetMonitor_Syscall(int id, int index, int value)
+{
+	DEBUG('M', "In SetMonitor_Syscall\n");
+	ClientDataTransfer("Monitor", SC_SetMonitor, id, index, value);
+}
+
+int GetMonitor_Syscall(int id, int index)
+{
+	DEBUG('M', "In GetMonitor_Syscall\n");
+	int monitorValue = -1;
+	ClientDataTransfer("Monitor", SC_GetMonitor, id, index, 0);
+	
+	return monitorValue;
+}
+
+void DestroyMonitor_Syscall(int monitor)
+{
+	DEBUG('M', "In DestroyMonitor_Syscall\n");
+	ClientDataTransfer("Monitor", SC_DestroyMonitor, monitor, 0, 0);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////
+//
+//	Rand Syscall
+///////////////////////////////////////////////////////////////////////////////////////////
+
+int Rand_Syscall(){
+	return rand();
+}
 
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -865,34 +979,43 @@ void DestroyMonitor_Syscall(int monitor)
 //
 //	Remote Procedure Call Functions
 ///////////////////////////////////////////////////////////////////////////////////////////
-//void ClientDataTransfer(unsigned int name, int sysIndex, int firstArg, int secondArg, int thirdArg)
-//{
-//		PacketHeader outPktHdr, inPktHdr;
-//    	MailHeader outMailHdr, inMailHdr;
-//    	char *data;
-//    	char *ack = "Syscall info recieved";
-//    	char buffer[MaxMailSize];
+void ClientDataTransfer(unsigned int name, int sysIndex, int firstArg, int secondArg, int thirdArg)
+{
+		PacketHeader outPktHdr, inPktHdr;
+    	MailHeader outMailHdr, inMailHdr;
+    	char *data;
+    	char *ack = "Syscall info recieved";
+    	char buffer[MaxMailSize];
+    	unsigned int returnValue;
     	
-    	//write data (as in, sysIndex, name, and all the args) to 'data')
+    	stringstream ss;
+    	ss << "A " << name << " " << sysIndex << " " firstArg << " " << secondArg << " " << thirdArg << " \0";
+    	data = new char[MaxMailSize];
+    	strcpy(data,ss.str.c_str());
     		
-    	//outPktHdr.to = farAddr;
-    	//outPktHdr.to = 0;		
-    	///outMailHdr.to = 0;
-    	//outMailHdr.from = 1;
-   		//outMailHdr.length = strlen(data) + 1;
+    	//outPktHdr.to = farAddr; //more like whatever the machine ID is
+    	outPktHdr.to = 0;		
+    	outMailHdr.to = 0;
+    	outMailHdr.from = 1;
+   		outMailHdr.length = strlen(data) + 1;
    		
-   		//bool success = postOffice->Send(outPktHdr, outMailHdr, data); 
+   		bool success = postOffice->Send(outPktHdr, outMailHdr, data); 
    		
-   		//if ( !success ) {
-      	//	printf("The postOffice Send failed. You must not have the other Nachos running. Terminating Nachos.\n");
-      	//	interrupt->Halt();
-    	//}
+   		if ( !success ) {
+      		printf("The postOffice Send failed. You must not have the other Nachos running. Terminating Nachos.\n");
+      		interrupt->Halt();
+    	}
     	
-    	//postOffice->Receive(0, &inPktHdr, &inMailHdr, buffer);
-   		//printf("Got \"%s\" from %d, box %d\n",buffer,inPktHdr.from,inMailHdr.from);
+    	postOffice->Receive(0, &inPktHdr, &inMailHdr, buffer);
    		//take the buffer, and break it into the necessary data
-    	//fflush(stdout);		
-//}
+   		//if (copyout(returnValue, sizeOf(name), buffer) == -1)
+		//{
+		//	printf("%s","Bad pointer passed to Create\n");
+		//	delete buffer;
+		//	return;
+		//}
+    	fflush(stdout);		
+}
 
 
 //
